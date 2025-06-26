@@ -1,0 +1,26 @@
+output "vpc_cidr" {
+  value = aws_vpc.vpc_fiap.cidr_block
+}
+
+output "vpc_id" {
+  value = aws_vpc.vpc_fiap.id
+}
+
+output "subnet_cidr" {
+  value = aws_subnet.public[0].cidr_block
+}
+
+output "subnet_id" {
+  value = aws_subnet.public[0].id
+}
+output "eks_cluster_name" {
+  value = aws_eks_cluster.cluster.name
+}
+
+output "dynamodb_table_name" {
+  value = aws_dynamodb_table.dynamodb-postech-g57.name
+}
+
+output "eks_role_arn" {
+  value = aws_iam_role.cluster.arn
+}

@@ -1,0 +1,74 @@
+resource "aws_vpc" "vpc_fiap" {
+  cidr_block           = var.cidr_vpc
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+
+  tags = {
+    Name = "${var.tags.Name}-main-vpc"
+  }
+}
+
+# Subnet Pública
+resource "aws_subnet" "public" {
+  count                   = 3
+  vpc_id                  = aws_vpc.vpc_fiap.id
+  cidr_block              = cidrsubnet(aws_vpc.vpc_fiap.cidr_block, 4, count.index)
+  availability_zone       = ["us-east-1a", "us-east-1b", "us-east-1c"][count.index]
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "${var.tags.Name}-public-subnet"
+  }
+}
+
+# Subnet Privada
+# resource "aws_subnet" "private" {
+#   vpc_id                  = aws_vpc.vpc_fiap.id
+#   cidr_block              = var.cidr_subnet_private
+#   availability_zone       = var.aws_region
+#   map_public_ip_on_launch = true
+#
+#   tags = {
+#     Name = "${var.tags.Name}-private-subnet"
+#   }
+# }
+
+# Gateway de Internet
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.vpc_fiap.id
+
+  tags = {
+    Name = "${var.tags.Name}-main-gateway"
+  }
+}
+
+resource "aws_route_table" "rt_public" {
+  vpc_id = aws_vpc.vpc_fiap.id
+
+  route {
+    cidr_block = aws_vpc.vpc_fiap.cidr_block
+    gateway_id = aws_internet_gateway.igw.id
+  }
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+}
+
+resource "aws_route_table_association" "rt_association_0" {
+  subnet_id      = aws_subnet.public[0].id
+  route_table_id = aws_route_table.rt_public.id
+}
+
+resource "aws_route_table_association" "rt_association_1" {
+  subnet_id      = aws_subnet.public[1].id
+  route_table_id = aws_route_table.rt_public.id
+}
+
+
+resource "aws_route_table_association" "rt_association_2" {
+  subnet_id      = aws_subnet.public[2].id
+  route_table_id = aws_route_table.rt_public.id
+}
+
