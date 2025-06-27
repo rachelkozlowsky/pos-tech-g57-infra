@@ -44,7 +44,7 @@ resource "aws_eks_node_group" "node_group" {
   node_role_arn   = aws_iam_role.postechfiap.arn
   subnet_ids      = [aws_subnet.public[0].id, aws_subnet.public[1].id, aws_subnet.public[2].id]
   instance_types = [var.instance_type]
-  disk_size = 50
+  disk_size = 2
 
   scaling_config {
     desired_size = 1
