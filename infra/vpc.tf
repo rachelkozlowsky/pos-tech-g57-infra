@@ -21,18 +21,6 @@ resource "aws_subnet" "public" {
   }
 }
 
-# Subnet Privada
-# resource "aws_subnet" "private" {
-#   vpc_id                  = aws_vpc.vpc_fiap.id
-#   cidr_block              = var.cidr_subnet_private
-#   availability_zone       = var.aws_region
-#   map_public_ip_on_launch = true
-#
-#   tags = {
-#     Name = "${var.tags.Name}-private-subnet"
-#   }
-# }
-
 # Gateway de Internet
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.vpc_fiap.id
@@ -47,7 +35,7 @@ resource "aws_route_table" "rt_public" {
 
   route {
     cidr_block = aws_vpc.vpc_fiap.cidr_block
-    gateway_id = aws_internet_gateway.igw.id
+    gateway_id = "local"
   }
 
   route {

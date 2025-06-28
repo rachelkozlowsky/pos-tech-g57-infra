@@ -1,7 +1,3 @@
-# variable "oidc"{
-#   type = string
-# }
-
 variable "aws_region" {
   description = "AWS region"
   type        = string
@@ -50,7 +46,7 @@ variable "kubernetes_namespace" {
 }
 
 variable "cluster_name" {
-    description = "The name of the EKS cluster"
-    type        = string
-    default     = "eks-cluster-postechfiap"
+  description = "The name of the EKS cluster"
+  type        = string
+  default     = "eks-cluster-postechfiap"
 }
