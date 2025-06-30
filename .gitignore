@@ -3,3 +3,5 @@
 .terraform.lock.hcl
 
 .idea
+
+*~.tf
