@@ -28,6 +28,11 @@ jobs:
         id: fmt
         run: terraform fmt -check
 
+      - name: Garantir bucket do backend-tfstate
+        run: |
+            aws s3api head-bucket --bucket tfstate-backend-postech-g57 || \
+            aws s3 mb s3://tfstate-backend-postech-g57 --region us-east-1
+
       - name: Terraform Init
         id: init
         run: terraform init

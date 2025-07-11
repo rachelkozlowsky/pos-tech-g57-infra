@@ -1,4 +1,5 @@
 variable "projectName" {
+    type  = string
   default = "postech-g57"
 }
 
@@ -21,4 +22,14 @@ variable "tags" {
 
 variable "instance_type" {
   default = "t3.medium"
+}
+
+variable "user_name" {
+  type    = string
+  default = "postech"
+}
+
+variable "bucket_name" {
+  type    = string
+  default = "tfstate-backend-postech-g57"
 }
