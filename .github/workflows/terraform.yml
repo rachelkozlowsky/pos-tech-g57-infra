@@ -53,7 +53,7 @@ jobs:
         env:
           PLAN: ${{ steps.plan.outputs.stdout }}
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.PERSONAL_TOKEN }}
           script: |
             const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
             #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
@@ -88,22 +88,25 @@ jobs:
   create-pr-to-develop:
     if: startsWith(github.ref, 'refs/heads/feature/')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0 # Fetch all history for all branches
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PERSONAL_TOKEN }}
 
       - name: Configure Git
         run: |
-            git config --global user.name 'GitHub_Actions'
+            git config --global user.name 'GitHub Actions'
             git config --global user.email 'actions@github.com'
 
       - name: Create Pull Request to develop
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PERSONAL_TOKEN }}
           commit-message: "chore: merge changes from ${{ github.ref_name }}"
           title: "Merge ${{ github.ref_name }} to develop"
           body: "Automated PR created by GitHub Actions"
@@ -111,3 +114,4 @@ jobs:
           branch: ${{ github.ref_name }}
           delete-branch: false
           draft: false
+          labels: automated-pr,terraform
