@@ -2,12 +2,19 @@ name: "Terraform"
 
 on:
   push:
+    branches:
+      - 'feature/**'
+      - 'main'
+  pull_request:
+    branches: [ 'main' ]
+
 jobs:
   terraform:
     name: "Terraform"
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -21,8 +28,6 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
-#        with:
-#          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
       - name: Terraform Format
         id: fmt
@@ -78,7 +83,7 @@ jobs:
             })
 
       - name: Terraform Plan Status
-        if: steps.plan.outcome == 'failure'
+        if: steps.plan.outcome == 'failure' && github.event_name == 'pull_request'
         run: exit 1
 
       - name: Terraform Apply
@@ -86,7 +91,8 @@ jobs:
         run: terraform apply -auto-approve -input=false
 
   create-pr-to-develop:
-    if: startsWith(github.ref, 'refs/heads/feature/')
+    name: "Create PR to Develop"
+    if: startsWith(github.ref, 'refs/heads/feature/') && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -95,15 +101,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0 # Fetch all history for all branches
+          fetch-depth: 0
           token: ${{ secrets.PERSONAL_TOKEN }}
 
       - name: Configure Git
         run: |
-            git config --global user.name 'GitHub Actions'
-            git config --global user.email 'actions@github.com'
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
 
-      - name: Create Pull Request to develop
+      - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.PERSONAL_TOKEN }}
