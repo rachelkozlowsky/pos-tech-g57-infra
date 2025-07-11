@@ -165,7 +165,6 @@ Configure os seguintes segredos no repositório do GitHub (Settings > Secrets > 
 - `AWS_SECRET_ACCESS_KEY` - Sua AWS Secret Access Key
 - `AWS_DEFAULT_REGION` - Região AWS (padrão: us-east-1)
 
-
 ## 🔒 Segurança
 
 - Nunca faça commit de credenciais ou arquivos sensíveis
