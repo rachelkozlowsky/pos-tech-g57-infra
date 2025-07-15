@@ -35,10 +35,14 @@ jobs:
     if: startsWith(github.ref, 'refs/heads/feature/') && github.event_name == 'push' && success()
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+      pull-requests: write
+
     steps:
       - name: Create PR using GitHub API
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
           REPO: ${{ github.repository }}
           HEAD_REF: ${{ github.ref_name }}
         run: |
