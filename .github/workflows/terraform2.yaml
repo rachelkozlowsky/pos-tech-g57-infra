@@ -66,7 +66,7 @@ jobs:
         env:
           PLAN: "$(cat tfplan.txt)"
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.PERSONAL_TOKEN }}
           script: |
             const fs = require('fs');
             const plan = fs.readFileSync('tfplan.txt', 'utf8');
@@ -97,17 +97,23 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PERSONAL_TOKEN}}
+
+      - name: Configure Git
+        run: |
+            git config --global user.name 'GitHub Actions'
+            git config --global user.email 'actions@github.com'
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PERSONAL_TOKEN }}
           commit-message: "chore: merge changes from ${{ github.ref_name }}"
           title: "Merge ${{ github.ref_name }} to develop"
           body: "Automated PR created by GitHub Actions"
@@ -129,12 +135,12 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PERSONAL_TOKEN}}
 
       - name: Create Release Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PERSONAL_TOKENPERSONAL_TOKEN }}
           commit-message: "chore: prepare release to main"
           title: "Release: Merge develop to main"
           body: |
