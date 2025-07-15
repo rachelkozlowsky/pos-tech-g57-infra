@@ -29,60 +29,60 @@ jobs:
       - name: Terraform Validate
         run: terraform validate -no-color
 
-  create-pr-to-develop:
-    name: "Create PR to Develop"
-    needs: terraform-validate
-    if: startsWith(github.ref, 'refs/heads/feature/') && github.event_name == 'push' && success()
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
-      pull-requests: write
-      id-token: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.PERSONAL_TOKEN }}
-
-      - name: Configure Git
-        run: |
-          git config --global user.name 'GitHub Actions'
-          git config --global user.email 'actions@github.com'
-          git remote set-url origin https://x-access-token:${{ secrets.PERSONAL_TOKEN }}@github.com/${{ github.repository }}.git
-          git config --global --add safe.directory /__w/pos-tech-g57-infra/pos-tech-g57-infra
-
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.PERSONAL_TOKEN }}
-          commit-message: "chore: merge changes from ${{ github.ref_name }}"
-          title: "[Feature] Merge ${{ github.ref_name }} to develop"
-          body: |
-            ## Descrição
-            Este PR foi criado automaticamente pelo GitHub Actions.
-            
-            ### Mudanças
-            - Branch de origem: `${{ github.ref_name }}`
-            
-            ### Verificações
-            - [ ] O código foi revisado
-            - [ ] Os testes passaram
-            - [ ] A documentação foi atualizada
-            
-            **Nota:** Este PR foi gerado automaticamente.
-          base: develop
-          branch: merge/${{ github.ref_name }}
-          delete-branch: true
-          draft: false
-          labels: feature,automated-pr
-
-      - name: Debug Output
-        if: always()
-        run: |
-          echo "GITHUB_REF: $GITHUB_REF"
-          echo "GITHUB_HEAD_REF: $GITHUB_HEAD_REF"
-          echo "GITHUB_BASE_REF: $GITHUB_BASE_REF"
-          echo "GITHUB_REF_NAME: $GITHUB_REF_NAME"
+#  create-pr-to-develop:
+#    name: "Create PR to Develop"
+#    needs: terraform-validate
+#    if: startsWith(github.ref, 'refs/heads/feature/') && github.event_name == 'push' && success()
+#    runs-on: ubuntu-latest
+#
+#    permissions:
+#      contents: write
+#      pull-requests: write
+#      id-token: write
+#
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v3
+#        with:
+#          fetch-depth: 0
+#          token: ${{ secrets.PERSONAL_TOKEN }}
+#
+#      - name: Configure Git
+#        run: |
+#          git config --global user.name 'GitHub Actions'
+#          git config --global user.email 'actions@github.com'
+#          git remote set-url origin https://x-access-token:${{ secrets.PERSONAL_TOKEN }}@github.com/${{ github.repository }}.git
+#          git config --global --add safe.directory /__w/pos-tech-g57-infra/pos-tech-g57-infra
+#
+#      - name: Create Pull Request
+#        uses: peter-evans/create-pull-request@v5
+#        with:
+#          token: ${{ secrets.PERSONAL_TOKEN }}
+#          commit-message: "chore: merge changes from ${{ github.ref_name }}"
+#          title: "[Feature] Merge ${{ github.ref_name }} to develop"
+#          body: |
+#            ## Descrição
+#            Este PR foi criado automaticamente pelo GitHub Actions.
+#
+#            ### Mudanças
+#            - Branch de origem: `${{ github.ref_name }}`
+#
+#            ### Verificações
+#            - [ ] O código foi revisado
+#            - [ ] Os testes passaram
+#            - [ ] A documentação foi atualizada
+#
+#            **Nota:** Este PR foi gerado automaticamente.
+#          base: develop
+#          branch: merge/${{ github.ref_name }}
+#          delete-branch: true
+#          draft: false
+#          labels: feature,automated-pr
+#
+#      - name: Debug Output
+#        if: always()
+#        run: |
+#          echo "GITHUB_REF: $GITHUB_REF"
+#          echo "GITHUB_HEAD_REF: $GITHUB_HEAD_REF"
+#          echo "GITHUB_BASE_REF: $GITHUB_BASE_REF"
+#          echo "GITHUB_REF_NAME: $GITHUB_REF_NAME"
