@@ -93,3 +93,9 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+      - name: Delete release branch
+        if: github.ref != 'refs/heads/main' && startsWith(github.ref, 'refs/heads/release/')
+        uses: dawidd6/action-delete-branch@v3
+        with:
+          github_token: ${{secrets.PERSONAL_TOKEN}}
+          branches: ${{ github.ref_name }}
