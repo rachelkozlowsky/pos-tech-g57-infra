@@ -1,0 +1,73 @@
+name: "Release Versioning"
+
+on:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'infra/**'  # Só executa quando houver mudanças na pasta infra
+
+jobs:
+  versioning:
+    name: "Create Release Version"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PERSONAL_TOKEN }}
+
+      - name: Get current version
+        id: version
+        run: |
+          if [ -f VERSION ]; then
+            echo "current_version=$(cat VERSION)" >> $GITHUB_OUTPUT
+          else
+            echo "current_version=0.1.0" > VERSION
+            echo "current_version=0.1.0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Bump version
+        id: bump
+        uses: mathieudutour/github-tag-action@v6.1
+        with:
+          github_token: ${{ secrets.PERSONAL_TOKEN }}
+          tag_prefix: "v"
+          default_bump: "patch"
+          release_branches: "main"
+          create_annotated_tag: true
+
+      - name: Update VERSION file
+        run: echo "${{ steps.bump.outputs.new_tag#v}}" > VERSION
+
+      - name: Commit version bump
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "chore: bump version to ${{ steps.bump.outputs.new_tag }}"
+          file_pattern: VERSION
+          commit_user_name: "GitHub Actions"
+          commit_user_email: "actions@github.com"
+          commit_author: "GitHub Actions <actions@github.com>"
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        if: steps.bump.outputs.new_tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+        with:
+          tag_name: ${{ steps.bump.outputs.new_tag }}
+          release_name: "Release ${{ steps.bump.outputs.new_tag }}"
+          body: |
+            ## Changes in this release
+
+            - Infrastructure updates
+            - Bug fixes and improvements
+
+            ### Terraform Output
+            ```hcl
+            # Terraform apply was successful
+            ```
+          draft: false
+          prerelease: false

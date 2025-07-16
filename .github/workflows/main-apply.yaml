@@ -47,7 +47,11 @@ jobs:
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply -auto-approve -input=false
+        run: |
+          # Obter a versão atual
+          VERSION=$(cat VERSION || echo "0.1.0")
+          terraform apply -auto-approve -input=false
+          echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Update PR with Apply Status
         if: github.event_name == 'pull_request'
@@ -64,7 +68,7 @@ jobs:
 
   notify-success:
     name: "Notify Success"
-    needs: terraform-apply
+    needs: [terraform-apply, versioning]
     if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
@@ -72,11 +76,11 @@ jobs:
       - name: Send success notification
         if: success()
         run: |
-          echo "Terraform apply executado com sucesso em produção!"
+          echo "Terraform apply executado com sucesso em produção! Versão: ${{ env.RELEASE_VERSION }}"
           # Adicione aqui notificações adicionais (email, Slack, etc.)
 
       - name: Send failure notification
         if: failure()
         run: |
-          echo "ERRO: Falha ao executar Terraform apply em produção!"
+          echo "ERRO: Falha ao executar Terraform apply em produção! Versão: ${{ env.RELEASE_VERSION }}"
           # Adicione aqui notificações de erro
