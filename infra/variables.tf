@@ -33,8 +33,3 @@ variable "bucket_name" {
   type    = string
   default = "tfstate-backend-postech-g57"
 }
-
-variable "key_name" {
-  type    = string
-  default = "postech-g57-key"
-}
