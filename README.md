@@ -13,6 +13,33 @@ Recursos criados incluem:
 - Security Groups
 - DynamoDB
 
+## 📂 Estrutura do Projeto
+
+```
+. 
+├── .github/  
+│ └── workflows/ 
+│   └── terraform.yml    # Configuração do GitHub Actions 
+├── infra/
+│ ├── access-entry.tf    # Configuração de acesso ao cluster EKS 
+│ ├── backend.tf         # Configuração do backend S3 para armazenamento do estado 
+│ ├── data.tf            # Fontes de dados para consulta de recursos existentes 
+│ ├── dynamodb.tf        # Configuração do DynamoDB
+│ ├── eks-cluster.tf     # Configuração do cluster EKS 
+│ ├── eks-node.tf        # Configuração dos nós do EKS 
+│ ├── iam-role.tf        # Definição de IAM Roles e Policies 
+│ ├── internet-g.tf      # Configuração do Internet Gateway 
+| ├── output.tf          # Definição de outputs para exibição após o deploy
+│ ├── provider.tf        # Configuração do provedor AWS
+│ ├── route-t.tf         # Tabelas de roteamento 
+│ ├── s3.tf              # Configuração do bucket S3 para o estado do Terraform
+│ ├── sg.tf              # Security Groups 
+│ ├── subnet.tf          # Definição das sub-redes 
+│ ├── terraform.tfvars      # Valores das variáveis de configuração 
+│ ├── variables.tf       # Definição de variáveis 
+│ └──  vpc.tf            # Configuração da VPC 
+└── README.md            # Documentação do projeto
+```
 
 ## 📋 Pré-requisitos
 
@@ -137,34 +164,6 @@ Configure os seguintes segredos no repositório do GitHub (Settings > Secrets > 
 - `AWS_ACCESS_KEY_ID` - Sua AWS Access Key ID
 - `AWS_SECRET_ACCESS_KEY` - Sua AWS Secret Access Key
 - `AWS_DEFAULT_REGION` - Região AWS (padrão: us-east-1)
-
-## 📂 Estrutura do Projeto
-
-```
-. 
-├── .github/  
-│ └── workflows/ 
-│   └── terraform.yml    # Configuração do GitHub Actions 
-├── infra/
-│ ├── access-entry.tf    # Configuração de acesso ao cluster EKS 
-│ ├── backend.tf         # Configuração do backend S3 para armazenamento do estado 
-│ ├── data.tf            # Fontes de dados para consulta de recursos existentes 
-│ ├── dynamodb.tf        # Configuração do DynamoDB
-│ ├── eks-cluster.tf     # Configuração do cluster EKS 
-│ ├── eks-node.tf        # Configuração dos nós do EKS 
-│ ├── iam-role.tf        # Definição de IAM Roles e Policies 
-│ ├── internet-g.tf      # Configuração do Internet Gateway 
-| ├── output.tf          # Definição de outputs para exibição após o deploy
-│ ├── provider.tf        # Configuração do provedor AWS
-│ ├── route-t.tf         # Tabelas de roteamento 
-│ ├── s3.tf              # Configuração do bucket S3 para o estado do Terraform
-│ ├── sg.tf              # Security Groups 
-│ ├── subnet.tf          # Definição das sub-redes 
-│ ├── terraform.tfvars      # Valores das variáveis de configuração 
-│ ├── variables.tf       # Definição de variáveis 
-│ └──  vpc.tf            # Configuração da VPC 
-└── README.md            # Documentação do projeto
-```
 
 ## 🔒 Segurança
 
