@@ -45,13 +45,13 @@ jobs:
         id: plan
         run: terraform plan -no-color -input=false
 
-      - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: |
-          # Obter a versão atual
-          VERSION=$(cat VERSION || echo "0.1.0")
-          terraform apply -auto-approve -input=false
-          echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
+#      - name: Terraform Apply
+#        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+#        run: |
+#          # Obter a versão atual
+#          VERSION=$(cat VERSION || echo "0.1.0")
+#          terraform apply -auto-approve -input=false
+#          echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Update PR with Apply Status
         if: github.event_name == 'pull_request'
