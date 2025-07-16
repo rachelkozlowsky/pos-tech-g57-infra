@@ -11,8 +11,9 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
+      statuses: write
 
     steps:
       - name: Checkout
@@ -60,59 +61,48 @@ jobs:
             
             if (prs.length > 0) {
               console.log(`Found existing PR #${prs[0].number}`);
-              core.setOutput('pr_number', prs[0].number);
+              core.setOutput('pr_number', prs[0].number.toString());
+              core.setOutput('pr_exists', 'true');
             } else {
               core.setOutput('pr_number', '0');
+              core.setOutput('pr_exists', 'false');
             }
 
       - name: Create or Update PR
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
         run: |
-          if [ "${{ steps.check-pr.outputs.pr_number }}" == "0" ]; then
+          PR_TITLE="Release v${{ env.NEW_VERSION_SIMPLE }}: Merge develop to main"
+          PR_BODY="## Descrição\nEste PR foi criado automaticamente para promover as alterações de develop para main.\n\n## Mudanças\n- Atualizações de infraestrutura\n- Correções de bugs\n\n## Versionamento\nNova versão: **v${{ env.NEW_VERSION_SIMPLE }}**"
+          
+          if [ "${{ steps.check-pr.outputs.pr_exists }}" == "false" ]; then
             echo "Creating new PR"
           
-            # Cria um branch para o release
-            RELEASE_BRANCH="release/$(date +%Y%m%d%H%M%S)"
-            git checkout -b $RELEASE_BRANCH
-          
-            # Configura o remote com o token
-            git remote set-url origin https://x-access-token:${{ secrets.PERSONAL_TOKEN }}@github.com/${{ github.repository }}.git
-          
-            # Faz push do branch
-            git push -u origin $RELEASE_BRANCH
-          
-            # Cria o PR
-            PR_TITLE="Release v${{ env.NEW_VERSION_SIMPLE }}: Merge develop to main"
-            PR_BODY="## Descrição\nEste PR foi criado automaticamente para promover as alterações de develop para main.\n\n## Mudanças\n- Atualizações de infraestrutura\n- Correções de bugs\n\n## Versionamento\nNova versão: **v${{ env.NEW_VERSION_SIMPLE }}**"
-          
+            # Cria o PR diretamente de develop para main
             curl -X POST \
-              -H "Authorization: token ${{ secrets.PERSONAL_TOKEN }}" \
+              -H "Authorization: token $GITHUB_TOKEN" \
               -H "Accept: application/vnd.github.v3+json" \
-              https://api.github.com/repos/${{ github.repository }}/pulls \
-              -d "{\"title\":\"$PR_TITLE\",\"body\":\"$PR_BODY\",\"head\":\"$RELEASE_BRANCH\",\"base\":\"main\"}"
+              "https://api.github.com/repos/${{ github.repository }}/pulls" \
+              -d '{"title":"'"$PR_TITLE"'","body":"'"$PR_BODY"'","head":"develop","base":"main"}'
           else
             echo "Updating existing PR #${{ steps.check-pr.outputs.pr_number }}"
           
             # Atualiza o PR existente
-            PR_TITLE="Release v${{ env.NEW_VERSION_SIMPLE }}: Merge develop to main"
-            PR_BODY="## Descrição\nEste PR foi atualizado automaticamente com as últimas alterações de develop.\n\n## Mudanças\n- Atualizações de infraestrutura\n- Correções de bugs\n\n## Versionamento\nNova versão: **v${{ env.NEW_VERSION_SIMPLE }}**"
-          
             curl -X PATCH \
-              -H "Authorization: token ${{ secrets.PERSONAL_TOKEN }}" \
+              -H "Authorization: token $GITHUB_TOKEN" \
               -H "Accept: application/vnd.github.v3+json" \
-              https://api.github.com/repos/${{ github.repository }}/pulls/${{ steps.check-pr.outputs.pr_number }} \
-              -d "{\"title\":\"$PR_TITLE\",\"body\":\"$PR_BODY\"}"
+              "https://api.github.com/repos/${{ github.repository }}/pulls/${{ steps.check-pr.outputs.pr_number }}" \
+              -d '{"title":"'"$PR_TITLE"'","body":"'"$PR_BODY"'"}'
           fi
 
-      - name: Run Terraform Plan
-        if: steps.check-pr.outputs.pr_number != '0'
+      - name: Setup Terraform
+        if: steps.check-pr.outputs.pr_exists == 'true'
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_wrapper: false
 
-      - name: Terraform Init
-        if: steps.check-pr.outputs.pr_number != '0'
+      - name: Terraform Init and Plan
+        if: steps.check-pr.outputs.pr_exists == 'true'
         run: |
           cd infra
           terraform init
@@ -120,16 +110,46 @@ jobs:
           terraform show -no-color tfplan > tfplan.txt
 
       - name: Add Plan Comment to PR
-        if: steps.check-pr.outputs.pr_number != '0'
+        if: steps.check-pr.outputs.pr_exists == 'true'
         uses: actions/github-script@v6
         with:
           script: |
             const fs = require('fs');
-            const plan = fs.readFileSync('infra/tfplan.txt', 'utf8');
+            try {
+              const plan = fs.readFileSync('infra/tfplan.txt', 'utf8');
             
-            await github.rest.issues.createComment({
-              issue_number: ${{ steps.check-pr.outputs.pr_number }},
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `### Terraform Plan 📖\n\n<details><summary>Show Plan</summary>\n\n\`\`\`terraform\n${plan}\n\`\`\`\n\n</details>\n\n*Pushed by: @${{ github.actor }}, GitHub Actions*`
-            });
+              // Primeiro, tenta encontrar um comentário existente
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: ${{ steps.check-pr.outputs.pr_number }}
+              });
+            
+              const existingComment = comments.find(comment => 
+                comment.user.login === 'github-actions[bot]' && 
+                comment.body.includes('Terraform Plan')
+              );
+            
+              const commentBody = `### Terraform Plan 📖\n\n<details><summary>Show Plan</summary>\n\n\`\`\`terraform\n${plan}\n\`\`\`\n\n</details>\n\n*Pushed by: @${{ github.actor }}, GitHub Actions*`;
+            
+              if (existingComment) {
+                // Atualiza o comentário existente
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existingComment.id,
+                  body: commentBody
+                });
+              } else {
+                // Cria um novo comentário
+                await github.rest.issues.createComment({
+                  issue_number: ${{ steps.check-pr.outputs.pr_number }},
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: commentBody
+                });
+              }
+            } catch (error) {
+              core.error('Failed to add plan comment: ' + error.message);
+              core.setFailed(error.message);
+            }
