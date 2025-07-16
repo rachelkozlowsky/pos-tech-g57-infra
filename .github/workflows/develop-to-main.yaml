@@ -82,6 +82,11 @@ jobs:
           TIMESTAMP=$(date +%Y%m%d%H%M%S)
           RELEASE_BRANCH="release/$TIMESTAMP"
           
+          # Obtém a próxima versão
+          CURRENT_VERSION=$(cat VERSION || echo "0.1.0")
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+          NEXT_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+          
           # Configura o Git
           git config --global user.name 'GitHub Actions'
           git config --global user.email 'actions@github.com'
@@ -96,8 +101,8 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/$REPO/pulls" \
             -d '{
-            "title": "Release: Merge develop to main",
-            "body": "## Descrição\nEste PR foi criado automaticamente para promover as alterações de develop para main.\n\n### Verificações\n- [ ] O código foi revisado\n- [ ] Os testes passaram\n- [ ] O plano do Terraform foi aprovado\n\n**Nota:** Este PR requer aprovação manual antes do merge.",
+            "title": "Release v'$NEXT_VERSION': Merge develop to main",
+            "body": "## Descrição\nEste PR foi criado automaticamente para promover as alterações de develop para main.\n\n### Versão: v'$NEXT_VERSION'\n\n### Verificações\n- [ ] O código foi revisado\n- [ ] Os testes passaram\n- [ ] O plano do Terraform foi aprovado\n\n**Nota:** Este PR requer aprovação manual antes do merge.",
             "head": "'"$RELEASE_BRANCH"'",
             "base": "main"
           }'
