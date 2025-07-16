@@ -140,6 +140,10 @@ terraform plan
 ### 3. Aplique a infraestrutura
 
 ```bash
+terraform apply -var="jwt_token_pix_application_payment=SEU_TOKEN_AQUI"
+```
+ou caso tenha configurado o token no arquivo `terraform.tfvars`, você pode simplesmente executar:
+```bash
 terraform apply
 ```
 

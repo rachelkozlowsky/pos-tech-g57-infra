@@ -11,7 +11,7 @@ resource "aws_secretsmanager_secret" "api_secrets" {
 resource "aws_secretsmanager_secret_version" "api_secrets_version" {
   secret_id = aws_secretsmanager_secret.api_secrets.id
   secret_string = jsonencode({
-    JWT_TOKEN_PIX_APPLICATION_PAYMENT = "QVBQX1VTUi0zMjY4NzY2MDEzMDA5OTgzLTA0MjcxMS1kYTM1ODdhZTg2ZDg3ZGJjMjFiZWY0ZDI4YTE5NDc5MC0yNDA4MTI4NzIx"
+    JWT_TOKEN_PIX_APPLICATION_PAYMENT = var.jwt_token_pix_application_payment
   })
 }
 
