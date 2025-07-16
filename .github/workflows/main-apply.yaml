@@ -1,0 +1,98 @@
+name: "Apply to Production"
+
+on:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'infra/**'  # Só executa quando houver mudanças na pasta infra
+
+jobs:
+  terraform-apply:
+    name: "Terraform Apply"
+    runs-on: ubuntu-latest
+
+    # Só executa quando o evento é um push para main
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    defaults:
+      run:
+        working-directory: ./infra
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2  # Precisamos de pelo menos 2 commits para comparar
+
+      - name: Check for infra changes
+        id: changes
+        run: |
+          echo "Verificando mudanças na pasta infra/..."
+          git diff --name-only HEAD^ HEAD -- ./infra/ | tee changed_files.txt
+          if [ -s changed_files.txt ]; then
+            echo "Mudanças detectadas na pasta infra/:"
+            cat changed_files.txt
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "Nenhuma mudança na pasta infra/"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Configure AWS credentials
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init
+        if: steps.changes.outputs.has_changes == 'true'
+        run: terraform init
+
+      - name: Terraform Plan
+        if: steps.changes.outputs.has_changes == 'true'
+        id: plan
+        run: |
+          echo "Executando terraform plan..."
+          terraform plan -no-color -input=false
+          echo "Terraform plan concluído."
+
+      # - name: Terraform Apply
+      #   if: steps.changes.outputs.has_changes == 'true'
+      #   run: terraform apply -auto-approve -input=false
+
+  notify-deployment:
+    name: "Notify Deployment Status"
+    needs: [terraform-apply]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check Terraform Apply Status
+        id: check-status
+        run: |
+          if [ "${{ needs.terraform-apply.result }}" = "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "message=Terraform plan executado com sucesso!" >> $GITHUB_OUTPUT
+          elif [ "${{ needs.terraform-apply.result }}" = "skipped" ]; then
+            echo "status=skipped" >> $GITHUB_OUTPUT
+            echo "message=Nenhuma mudança na pasta infra/ detectada." >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "message=ERRO: Falha ao executar Terraform plan!" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Notification
+        run: |
+          echo "${{ steps.check-status.outputs.message }}"
+          # Adicione aqui notificações adicionais (email, Slack, etc.)
