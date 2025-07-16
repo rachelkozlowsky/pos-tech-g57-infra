@@ -1,5 +1,5 @@
 data "aws_iam_user" "principal_user" {
-  user_name = "postech"
+  user_name = var.user_name
 }
 
 data "aws_eks_cluster" "cluster" {
