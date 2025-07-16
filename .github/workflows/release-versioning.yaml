@@ -23,20 +23,9 @@ jobs:
         run: |
           git config --global user.name 'GitHub Actions'
           git config --global user.email 'actions@github.com'
+          git config --global --add safe.directory /github/workspace
 
-      - name: Get current version
-        id: version
-        run: |
-          if [ -f VERSION ]; then
-            echo "current_version=$(cat VERSION)" >> $GITHUB_OUTPUT
-          else
-            echo "0.1.0" > VERSION
-            git add VERSION
-            git commit -m "chore: initial version file" || echo "No changes to commit"
-            echo "current_version=0.1.0" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Bump version
+      - name: Bump version and create tag
         id: bump
         uses: mathieudutour/github-tag-action@v6.1
         with:
@@ -50,31 +39,6 @@ jobs:
         run: |
           echo "New tag: ${{ steps.bump.outputs.new_tag }}"
           echo "Previous tag: ${{ steps.bump.outputs.previous_tag }}"
-
-      - name: Update VERSION file
-        if: steps.bump.outputs.new_tag
-        run: |
-          NEW_VERSION=$(echo "${{ steps.bump.outputs.new_tag }}" | sed 's/^v//')
-          echo "Updating VERSION to $NEW_VERSION"
-          echo "$NEW_VERSION" > VERSION
-
-      - name: Commit version bump
-        if: steps.bump.outputs.new_tag
-        uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          commit_message: "chore: bump version to ${{ steps.bump.outputs.new_tag }}"
-          file_pattern: VERSION
-          commit_user_name: 'GitHub Actions'
-          commit_user_email: 'actions@github.com'
-          commit_author: 'GitHub Actions <actions@github.com>'
-          branch: main
-
-      - name: Push changes
-        if: steps.bump.outputs.new_tag
-        run: |
-          git fetch
-          git pull --rebase origin main
-          git push origin HEAD:main
 
       - name: Create GitHub Release
         if: steps.bump.outputs.new_tag
@@ -93,6 +57,7 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+
       - name: Delete release branch
         if: github.ref != 'refs/heads/main' && startsWith(github.ref, 'refs/heads/release/')
         uses: dawidd6/action-delete-branch@v3

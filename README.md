@@ -43,7 +43,6 @@ Recursos criados incluem:
 │ ├── variables.tf       # Definição de variáveis 
 │ └──  vpc.tf            # Configuração da VPC 
 └── README.md            # Documentação do projeto
-└── VERSION              # Versão do projeto
 
 ```
 
