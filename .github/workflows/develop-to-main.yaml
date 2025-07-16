@@ -1,65 +1,13 @@
-name: "Plan and Create PR to Main"
+name: "Create PR to Main"
 
 on:
   push:
     branches:
       - 'develop'
-  pull_request:
-    branches:
-      - 'main'
 
 jobs:
-  terraform-plan:
-    name: "Terraform Plan"
-    runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: ./infra
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v3
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-
-      - name: Terraform Init
-        run: terraform init
-
-      - name: Terraform Plan
-        id: plan
-        run: |
-          terraform plan -no-color -input=false -out=tfplan
-          terraform show -no-color tfplan > tfplan.txt
-
-      - name: Update PR with Plan
-        if: github.event_name == 'pull_request'
-        run: |
-          PLAN=$(cat tfplan.txt)
-          PAYLOAD=$(jq -n \
-            --arg plan "$PLAN" \
-            --arg actor "${{ github.actor }}" \
-            '{
-              body: ("### Terraform Plan 📖\n\n<details><summary>Show Plan</summary>\n\n```terraform\n" + $plan + "\n```\n\n</details>\n\n*Pushed by: @" + $actor + "*")
-            }')
-          curl -X POST \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            -d "$PAYLOAD" \
-            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments"
-
   create-pr-to-main:
-    name: "Create or Update PR to Main"
-    needs: terraform-plan
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push' && success()
+    name: "Create PR to Main"
     runs-on: ubuntu-latest
 
     permissions:
@@ -73,73 +21,115 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.PERSONAL_TOKEN }}
 
-      - name: Get existing PRs
-        id: get-prs
+      - name: Configure Git
         run: |
-          RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/${{ github.repository }}/pulls?state=open&base=main")
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+          git config --global --add safe.directory /github/workspace
+
+      - name: Get latest tag
+        id: get_latest_tag
+        run: |
+          # Pega a tag mais recente
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          # Extrai o número da versão (remove o 'v' do início)
+          VERSION_NUMBER=${LATEST_TAG#v}
+          # Incrementa o patch version
+          IFS='.' read -r -a VERSION_PARTS <<< "$VERSION_NUMBER"
+          NEW_PATCH_VERSION=$((VERSION_PARTS[2] + 1))
+          NEW_VERSION="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.$NEW_PATCH_VERSION"
           
-          # Verifica se já existe um PR aberto
-          PR_NUMBER=$(echo "$RESPONSE" | jq '.[0].number // empty')
-          PR_HEAD_REF=$(echo "$RESPONSE" | jq -r '.[0].head.ref // empty')
+          echo "Current version: $LATEST_TAG"
+          echo "New version: v$NEW_VERSION"
           
-          if [ -n "$PR_NUMBER" ]; then
-            echo "Found existing PR #$PR_NUMBER"
-            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-            echo "pr_head_ref=$PR_HEAD_REF" >> $GITHUB_OUTPUT
-          fi
+          echo "NEW_VERSION=v$NEW_VERSION" >> $GITHUB_ENV
+          echo "NEW_VERSION_SIMPLE=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Check for existing PR
+        id: check-pr
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              head: 'develop',
+              base: 'main'
+            });
+            
+            if (prs.length > 0) {
+              console.log(`Found existing PR #${prs[0].number}`);
+              core.setOutput('pr_number', prs[0].number);
+            } else {
+              core.setOutput('pr_number', '0');
+            }
 
       - name: Create or Update PR
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
-          REPO: ${{ github.repository }}
         run: |
-          # Obtém a versão atual
-          CURRENT_VERSION=$(cat VERSION || echo "0.1.0")
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-          NEXT_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
-          
-          # Configura o Git
-          git config --global user.name 'GitHub Actions'
-          git config --global user.email 'actions@github.com'
-          
-          if [ -n "${{ steps.get-prs.outputs.pr_number }}" ]; then
-            echo "Updating existing PR #${{ steps.get-prs.outputs.pr_number }}"
-          
-            # Atualiza o branch existente
-            git checkout "${{ steps.get-prs.outputs.pr_head_ref }}"
-            git merge --no-ff develop -m "chore: merge develop into release branch"
-            git push origin "${{ steps.get-prs.outputs.pr_head_ref }}"
-          
-            # Atualiza o título e o corpo do PR existente
-            curl -X PATCH \
-              -H "Authorization: token $GITHUB_TOKEN" \
-              -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/repos/$REPO/pulls/${{ steps.get-prs.outputs.pr_number }}" \
-              -d '{
-                "title": "Release v'$NEXT_VERSION': Merge develop to main (Updated)",
-                "body": "## Descrição\nEste PR foi atualizado automaticamente com as últimas alterações de develop.\n\n### Versão: v'$NEXT_VERSION'\n\n### Verificações\n- [ ] O código foi revisado\n- [ ] Os testes passaram\n- [ ] O plano do Terraform foi aprovado\n\n**Nota:** Este PR requer aprovação manual antes do merge."
-              }'
-          else
+          if [ "${{ steps.check-pr.outputs.pr_number }}" == "0" ]; then
             echo "Creating new PR"
-            # Gera um timestamp para o branch de release
-            TIMESTAMP=$(date +%Y%m%d%H%M%S)
-            RELEASE_BRANCH="release/$TIMESTAMP"
           
-            # Cria e faz push do branch de release
-            git checkout -b "$RELEASE_BRANCH" develop
-            git push -u origin "$RELEASE_BRANCH"
+            # Cria um branch para o release
+            RELEASE_BRANCH="release/$(date +%Y%m%d%H%M%S)"
+            git checkout -b $RELEASE_BRANCH
           
-            # Cria o PR usando a API do GitHub
+            # Configura o remote com o token
+            git remote set-url origin https://x-access-token:${{ secrets.PERSONAL_TOKEN }}@github.com/${{ github.repository }}.git
+          
+            # Faz push do branch
+            git push -u origin $RELEASE_BRANCH
+          
+            # Cria o PR
+            PR_TITLE="Release v${{ env.NEW_VERSION_SIMPLE }}: Merge develop to main"
+            PR_BODY="## Descrição\nEste PR foi criado automaticamente para promover as alterações de develop para main.\n\n## Mudanças\n- Atualizações de infraestrutura\n- Correções de bugs\n\n## Versionamento\nNova versão: **v${{ env.NEW_VERSION_SIMPLE }}**"
+          
             curl -X POST \
-              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Authorization: token ${{ secrets.PERSONAL_TOKEN }}" \
               -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/repos/$REPO/pulls" \
-              -d '{
-                "title": "Release v'$NEXT_VERSION': Merge develop to main",
-                "body": "## Descrição\nEste PR foi criado automaticamente para promover as alterações de develop para main.\n\n### Versão: v'$NEXT_VERSION'\n\n### Verificações\n- [ ] O código foi revisado\n- [ ] Os testes passaram\n- [ ] O plano do Terraform foi aprovado\n\n**Nota:** Este PR requer aprovação manual antes do merge.",
-                "head": "'$RELEASE_BRANCH'",
-                "base": "main"
-              }'
+              https://api.github.com/repos/${{ github.repository }}/pulls \
+              -d "{\"title\":\"$PR_TITLE\",\"body\":\"$PR_BODY\",\"head\":\"$RELEASE_BRANCH\",\"base\":\"main\"}"
+          else
+            echo "Updating existing PR #${{ steps.check-pr.outputs.pr_number }}"
+          
+            # Atualiza o PR existente
+            PR_TITLE="Release v${{ env.NEW_VERSION_SIMPLE }}: Merge develop to main"
+            PR_BODY="## Descrição\nEste PR foi atualizado automaticamente com as últimas alterações de develop.\n\n## Mudanças\n- Atualizações de infraestrutura\n- Correções de bugs\n\n## Versionamento\nNova versão: **v${{ env.NEW_VERSION_SIMPLE }}**"
+          
+            curl -X PATCH \
+              -H "Authorization: token ${{ secrets.PERSONAL_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              https://api.github.com/repos/${{ github.repository }}/pulls/${{ steps.check-pr.outputs.pr_number }} \
+              -d "{\"title\":\"$PR_TITLE\",\"body\":\"$PR_BODY\"}"
           fi
+
+      - name: Run Terraform Plan
+        if: steps.check-pr.outputs.pr_number != '0'
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        if: steps.check-pr.outputs.pr_number != '0'
+        run: |
+          cd infra
+          terraform init
+          terraform plan -no-color -out=tfplan
+          terraform show -no-color tfplan > tfplan.txt
+
+      - name: Add Plan Comment to PR
+        if: steps.check-pr.outputs.pr_number != '0'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('infra/tfplan.txt', 'utf8');
+            
+            await github.rest.issues.createComment({
+              issue_number: ${{ steps.check-pr.outputs.pr_number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `### Terraform Plan 📖\n\n<details><summary>Show Plan</summary>\n\n\`\`\`terraform\n${plan}\n\`\`\`\n\n</details>\n\n*Pushed by: @${{ github.actor }}, GitHub Actions*`
+            });
