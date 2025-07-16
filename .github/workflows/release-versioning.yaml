@@ -19,13 +19,20 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.PERSONAL_TOKEN }}
 
+      - name: Configure Git
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+
       - name: Get current version
         id: version
         run: |
           if [ -f VERSION ]; then
             echo "current_version=$(cat VERSION)" >> $GITHUB_OUTPUT
           else
-            echo "current_version=0.1.0" > VERSION
+            echo "0.1.0" > VERSION
+            git add VERSION
+            git commit -m "chore: initial version file" || echo "No changes to commit"
             echo "current_version=0.1.0" >> $GITHUB_OUTPUT
           fi
 
@@ -39,35 +46,50 @@ jobs:
           release_branches: "main"
           create_annotated_tag: true
 
+      - name: Debug outputs
+        run: |
+          echo "New tag: ${{ steps.bump.outputs.new_tag }}"
+          echo "Previous tag: ${{ steps.bump.outputs.previous_tag }}"
+
       - name: Update VERSION file
-        run: echo "${{ steps.bump.outputs.new_tag }}" | sed 's/^v//' > VERSION
+        if: steps.bump.outputs.new_tag
+        run: |
+          NEW_VERSION=$(echo "${{ steps.bump.outputs.new_tag }}" | sed 's/^v//')
+          echo "Updating VERSION to $NEW_VERSION"
+          echo "$NEW_VERSION" > VERSION
 
       - name: Commit version bump
+        if: steps.bump.outputs.new_tag
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "chore: bump version to ${{ steps.bump.outputs.new_tag }}"
           file_pattern: VERSION
-          commit_user_name: "GitHub Actions"
-          commit_user_email: "actions@github.com"
-          commit_author: "GitHub Actions <actions@github.com>"
+          commit_user_name: 'GitHub Actions'
+          commit_user_email: 'actions@github.com'
+          commit_author: 'GitHub Actions <actions@github.com>'
+          branch: main
+
+      - name: Push changes
+        if: steps.bump.outputs.new_tag
+        run: |
+          git fetch
+          git pull --rebase origin main
+          git push origin HEAD:main
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
         if: steps.bump.outputs.new_tag
-        env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
+          name: "Release ${{ steps.bump.outputs.new_tag }}"
           tag_name: ${{ steps.bump.outputs.new_tag }}
-          release_name: "Release ${{ steps.bump.outputs.new_tag }}"
           body: |
             ## Changes in this release
-
             - Infrastructure updates
             - Bug fixes and improvements
-
-            ### Terraform Output
-            ```hcl
-            # Terraform apply was successful
-            ```
+            
+            ### Version: ${{ steps.bump.outputs.new_tag }}
           draft: false
           prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}

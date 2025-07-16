@@ -19,7 +19,11 @@ Recursos criados incluem:
 . 
 ├── .github/  
 │ └── workflows/ 
-│   └── terraform.yml    # Configuração do GitHub Actions 
+│   └── develop-to-main.yaml      # Configuração do GitHub Actions 
+|   └── feture-to-develop.yaml    # Configuração do GitHub Actions 
+|   └── main-apply.yaml           # Configuração do GitHub Actions 
+|   └── release-versioning.yaml   # Configuração do GitHub Actions 
+│ └── CODEOWNERS                  # Definição de responsáveis pelo código
 ├── infra/
 │ ├── access-entry.tf    # Configuração de acesso ao cluster EKS 
 │ ├── backend.tf         # Configuração do backend S3 para armazenamento do estado 
@@ -35,10 +39,12 @@ Recursos criados incluem:
 │ ├── s3.tf              # Configuração do bucket S3 para o estado do Terraform
 │ ├── sg.tf              # Security Groups 
 │ ├── subnet.tf          # Definição das sub-redes 
-│ ├── terraform.tfvars      # Valores das variáveis de configuração 
+│ ├── terraform.tfvars   # Valores das variáveis de configuração 
 │ ├── variables.tf       # Definição de variáveis 
 │ └──  vpc.tf            # Configuração da VPC 
 └── README.md            # Documentação do projeto
+└── VERSION              # Versão do projeto
+
 ```
 
 ## 📋 Pré-requisitos
