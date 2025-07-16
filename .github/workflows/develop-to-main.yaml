@@ -10,12 +10,22 @@ jobs:
     name: "Create PR to Main"
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+      pull-requests: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
           token: ${{ secrets.PERSONAL_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+          git config --global --add safe.directory /github/workspace
 
       - name: Get latest tag
         id: get_latest_tag
@@ -50,49 +60,76 @@ jobs:
             
             if (prs.length > 0) {
               console.log(`Found existing PR #${prs[0].number}`);
-              return prs[0].number;
+              core.setOutput('pr_number', prs[0].number);
+            } else {
+              core.setOutput('pr_number', '0');
             }
-            return 0;
 
       - name: Create or Update PR
-        if: steps.check-pr.outputs.result == 0
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.PERSONAL_TOKEN }}
-          commit-message: "chore: prepare release v${{ env.NEW_VERSION_SIMPLE }}"
-          title: "Release v${{ env.NEW_VERSION_SIMPLE }}: Merge develop to main"
-          body: |
-            ## Descrição
-            Este PR foi criado automaticamente para promover as alterações de develop para main.
-            
-            ## Mudanças
-            - Atualizações de infraestrutura
-            - Correções de bugs
-            
-            ## Versionamento
-            Nova versão: **v${{ env.NEW_VERSION_SIMPLE }}**
-            
-            Para visualizar as alterações completas, consulte o [Changelog](https://github.com/${{ github.repository }}/releases/tag/v${{ env.NEW_VERSION_SIMPLE }}) após o merge.
-          branch: "release/$(date +%Y%m%d%H%M%S)"
-          base: main
-          delete-branch: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+        run: |
+          if [ "${{ steps.check-pr.outputs.pr_number }}" == "0" ]; then
+            echo "Creating new PR"
+          
+            # Cria um branch para o release
+            RELEASE_BRANCH="release/$(date +%Y%m%d%H%M%S)"
+            git checkout -b $RELEASE_BRANCH
+          
+            # Configura o remote com o token
+            git remote set-url origin https://x-access-token:${{ secrets.PERSONAL_TOKEN }}@github.com/${{ github.repository }}.git
+          
+            # Faz push do branch
+            git push -u origin $RELEASE_BRANCH
+          
+            # Cria o PR
+            PR_TITLE="Release v${{ env.NEW_VERSION_SIMPLE }}: Merge develop to main"
+            PR_BODY="## Descrição\nEste PR foi criado automaticamente para promover as alterações de develop para main.\n\n## Mudanças\n- Atualizações de infraestrutura\n- Correções de bugs\n\n## Versionamento\nNova versão: **v${{ env.NEW_VERSION_SIMPLE }}**"
+          
+            curl -X POST \
+              -H "Authorization: token ${{ secrets.PERSONAL_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              https://api.github.com/repos/${{ github.repository }}/pulls \
+              -d "{\"title\":\"$PR_TITLE\",\"body\":\"$PR_BODY\",\"head\":\"$RELEASE_BRANCH\",\"base\":\"main\"}"
+          else
+            echo "Updating existing PR #${{ steps.check-pr.outputs.pr_number }}"
+          
+            # Atualiza o PR existente
+            PR_TITLE="Release v${{ env.NEW_VERSION_SIMPLE }}: Merge develop to main"
+            PR_BODY="## Descrição\nEste PR foi atualizado automaticamente com as últimas alterações de develop.\n\n## Mudanças\n- Atualizações de infraestrutura\n- Correções de bugs\n\n## Versionamento\nNova versão: **v${{ env.NEW_VERSION_SIMPLE }}**"
+          
+            curl -X PATCH \
+              -H "Authorization: token ${{ secrets.PERSONAL_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              https://api.github.com/repos/${{ github.repository }}/pulls/${{ steps.check-pr.outputs.pr_number }} \
+              -d "{\"title\":\"$PR_TITLE\",\"body\":\"$PR_BODY\"}"
+          fi
 
-      - name: Update existing PR
-        if: steps.check-pr.outputs.result != 0
-        uses: peter-evans/create-pull-request@v5
+      - name: Run Terraform Plan
+        if: steps.check-pr.outputs.pr_number != '0'
+        uses: hashicorp/setup-terraform@v2
         with:
-          token: ${{ secrets.PERSONAL_TOKEN }}
-          pull-request-number: ${{ steps.check-pr.outputs.result }}
-          title: "Release v${{ env.NEW_VERSION_SIMPLE }}: Merge develop to main"
-          body: |
-            ## Descrição
-            Este PR foi atualizado automaticamente com as últimas alterações de develop.
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        if: steps.check-pr.outputs.pr_number != '0'
+        run: |
+          cd infra
+          terraform init
+          terraform plan -no-color -out=tfplan
+          terraform show -no-color tfplan > tfplan.txt
+
+      - name: Add Plan Comment to PR
+        if: steps.check-pr.outputs.pr_number != '0'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('infra/tfplan.txt', 'utf8');
             
-            ## Mudanças
-            - Atualizações de infraestrutura
-            - Correções de bugs
-            
-            ## Versionamento
-            Nova versão: **v${{ env.NEW_VERSION_SIMPLE }}**
-            
-            Para visualizar as alterações completas, consulte o [Changelog](https://github.com/${{ github.repository }}/releases/tag/v${{ env.NEW_VERSION_SIMPLE }}) após o merge.
+            await github.rest.issues.createComment({
+              issue_number: ${{ steps.check-pr.outputs.pr_number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `### Terraform Plan 📖\n\n<details><summary>Show Plan</summary>\n\n\`\`\`terraform\n${plan}\n\`\`\`\n\n</details>\n\n*Pushed by: @${{ github.actor }}, GitHub Actions*`
+            });
