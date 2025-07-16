@@ -4,17 +4,16 @@ on:
   push:
     branches:
       - 'main'
-  pull_request:
-    branches:
-      - 'main'
+    paths:
+      - 'infra/**'  # Só executa quando houver mudanças na pasta infra
 
 jobs:
   terraform-apply:
     name: "Terraform Apply"
     runs-on: ubuntu-latest
 
-    # Só executa quando o evento é um push para main, não em PRs
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Só executa quando o evento é um push para main e há mudanças na pasta infra
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.commits[0].modified, 'infra/')
 
     defaults:
       run:
@@ -46,39 +45,27 @@ jobs:
         run: terraform plan -no-color -input=false
 
 #      - name: Terraform Apply
-#        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-#        run: |
-#          terraform apply -auto-approve -input=false
+#        run: terraform apply -auto-approve -input=false
 
-
-      - name: Update PR with Apply Status
-        if: github.event_name == 'pull_request'
-        run: |
-          curl -X POST \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.event.pull_request.head.sha }}" \
-            -d '{
-              "state": "success",
-              "description": "Terraform apply successful",
-              "context": "terraform-apply"
-            }'
-
-  notify-success:
-    name: "Notify Success"
-    needs: [terraform-apply]
-    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+  notify-deployment:
+    name: "Notify Deployment Status"
+    needs: [terraform-plan]
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.commits[0].modified, 'infra/')
     runs-on: ubuntu-latest
 
     steps:
-      - name: Send success notification
-        if: success()
+      - name: Check Terraform Apply Status
+        id: check-status
         run: |
-          echo "Terraform apply executado com sucesso em produção! Versão: ${{ env.RELEASE_VERSION }}"
-          # Adicione aqui notificações adicionais (email, Slack, etc.)
+          if [ "${{ needs.terraform-apply.result }}" = "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "message=Terraform apply executado com sucesso em produção!" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "message=ERRO: Falha ao executar Terraform apply em produção!" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Send failure notification
-        if: failure()
+      - name: Send Notification
         run: |
-          echo "ERRO: Falha ao executar Terraform apply em produção! Versão: ${{ env.RELEASE_VERSION }}"
-          # Adicione aqui notificações de erro
+          echo "${{ steps.check-status.outputs.message }}"
+          # Adicione aqui notificações adicionais (email, Slack, etc.)
