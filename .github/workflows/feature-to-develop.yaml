@@ -32,31 +32,62 @@ jobs:
   create-pr-to-develop:
     name: "Create PR to Develop"
     needs: terraform-validate
-    if: startsWith(github.ref, 'refs/heads/feature/') && github.event_name == 'push' && success()
+    if: startsWith(github.ref, 'refs/heads/feature/') && github.event_name == 'push' && needs.terraform-validate.result == 'success'
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
 
     steps:
-      - name: Create PR using GitHub API
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PERSONAL_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+          git config --global --add safe.directory /github/workspace
+
+      - name: Check for existing PR
+        id: check-pr
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              head: context.ref.replace('refs/heads/', ''),
+              base: 'develop'
+            });
+            
+            if (prs.length > 0) {
+              console.log(`Found existing PR #${prs[0].number}`);
+              core.setOutput('pr_number', prs[0].number);
+              core.setOutput('pr_exists', 'true');
+            } else {
+              core.setOutput('pr_number', '0');
+              core.setOutput('pr_exists', 'false');
+            }
+
+      - name: Create PR to Develop
+        if: steps.check-pr.outputs.pr_exists == 'false'
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
-          REPO: ${{ github.repository }}
-          HEAD_REF: ${{ github.ref_name }}
+          FEATURE_NAME: ${{ github.ref_name }}
         run: |
-          # Extrai o nome da feature do branch
-          FEATURE_NAME="${HEAD_REF#feature/}"
-          
           # Cria o PR usando a API do GitHub
           curl -X POST \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/$REPO/pulls" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls" \
             -d '{
-            "title": "[Feature] '"$FEATURE_NAME"'",
-            "body": "PR criado automaticamente da feature '"$HEAD_REF"' para develop",
-            "head": "'"$HEAD_REF"'",
-            "base": "develop"
-          }'
+              "title": "[Feature] '$FEATURE_NAME'",
+              "body": "PR criado automaticamente da feature '$FEATURE_NAME' para develop\n\n## Descrição\nAlterações relacionadas à feature: '$FEATURE_NAME'\n\n## Checklist\n- [ ] O código foi revisado\n- [ ] Os testes passaram\n- [ ] O plano do Terraform foi aprovado",
+              "head": "'$FEATURE_NAME'",
+              "base": "develop"
+            }'
