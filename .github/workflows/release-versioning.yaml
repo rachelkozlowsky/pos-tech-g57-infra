@@ -40,7 +40,7 @@ jobs:
           create_annotated_tag: true
 
       - name: Update VERSION file
-        run: echo "${{ steps.bump.outputs.new_tag#v}}" > VERSION
+        run: echo "${{ steps.bump.outputs.new_tag }}" | sed 's/^v//' > VERSION
 
       - name: Commit version bump
         uses: stefanzweifel/git-auto-commit-action@v4
