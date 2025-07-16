@@ -68,7 +68,7 @@ jobs:
 
   notify-success:
     name: "Notify Success"
-    needs: [terraform-apply, versioning]
+    needs: [terraform-apply]
     if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
