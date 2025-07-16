@@ -9,3 +9,5 @@ tags = {
   Environment = "Production",
   Year = "2025"
 } # Tags para os recursos criados
+
+jwt_token_pix_application_payment = "SEU_TOKEN_AQUI" # Token JWT para autenticação com o serviço de pagamento PIX
