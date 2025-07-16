@@ -70,7 +70,6 @@ jobs:
         id: plan
         run: terraform plan -no-color -input=false
 
-      # Mantido comentado conforme solicitado
       # - name: Terraform Apply
       #   if: steps.check-changes.outputs.has_changes == 'true'
       #   run: terraform apply -auto-approve -input=false
