@@ -49,7 +49,7 @@ jobs:
 
   notify-deployment:
     name: "Notify Deployment Status"
-    needs: [terraform-plan]
+    needs: [terraform-apply]
     if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.commits[0].modified, 'infra/')
     runs-on: ubuntu-latest
 
