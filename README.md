@@ -12,6 +12,7 @@ Recursos criados incluem:
 - IAM Roles e Policies
 - Security Groups
 - DynamoDB
+- Secrets Manager 
 
 ## 📂 Estrutura do Projeto
 
@@ -41,7 +42,7 @@ Recursos criados incluem:
 │ ├── subnet.tf          # Definição das sub-redes 
 │ ├── terraform.tfvars   # Valores das variáveis de configuração 
 │ ├── variables.tf       # Definição de variáveis 
-│ └──  vpc.tf            # Configuração da VPC 
+│ └── vpc.tf             # Configuração da VPC 
 └── README.md            # Documentação do projeto
 
 ```
@@ -60,7 +61,7 @@ Antes de começar, certifique-se de ter instalado:
 
 ```bash
 git clone https://github.com/rachelkozlowsky/pos-tech-g57-infra.git 
-cd pos-tech-g57-infra
+cd pos-tech-g57-infra/infra
 ```
 ### 2. Configure as credenciais da AWS
 
@@ -119,10 +120,14 @@ terraform plan
 
 ### 3. Aplique a infraestrutura
 
-```bash
-terraform apply -var="jwt_token_pix_application_payment=SEU_TOKEN_AQUI"
-```
-ou caso tenha configurado o token no arquivo `terraform.tfvars`, você pode simplesmente executar:
+[//]: # ()
+[//]: # (```bash)
+
+[//]: # (terraform apply -var="jwt_token_pix_application_payment=SEU_TOKEN_AQUI")
+
+[//]: # (```)
+
+[//]: # (ou caso tenha configurado o token no arquivo `terraform.tfvars`, você pode simplesmente executar:)
 ```bash
 terraform apply
 ```
@@ -130,7 +135,7 @@ terraform apply
 Confirme a execução digitando `yes` quando solicitado.
 
 
-4. **Atualize o arquivo `backend.tf`** para incluir o bucket S3 criado (Opcional):
+### 4. **Atualize o arquivo `backend.tf`** para incluir o bucket S3 criado (Opcional):
    ```hcl
    terraform {
      backend "s3" {
@@ -140,7 +145,7 @@ Confirme a execução digitando `yes` quando solicitado.
      }
    }
    ```
-5. **Migre o estado do Terraform para o S3: (Opcional)**
+### 5. **Migre o estado do Terraform para o S3: (Opcional)**
    ```bash
    terraform init -migrate-state
    ```
@@ -154,8 +159,8 @@ terraform destroy
 ```
 
 ## 🔄 Fluxo de Trabalho com GitHub Actions
-//todo
-O projeto inclui um workflow do GitHub Actions que pode ser configurado para execução automática. O arquivo está localizado em `.github/workflows/terraform.yml`.
+
+O projeto inclui um workflow do GitHub Actions que pode ser configurado para execução automática. Os arquivos de configuração estão localizados em `.github/workflows/`.
 
 ### Variáveis de Ambiente Necessárias
 
