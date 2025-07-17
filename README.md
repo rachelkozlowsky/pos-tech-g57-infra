@@ -52,15 +52,15 @@ Antes de começar, certifique-se de ter instalado:
 
 - [Terraform](https://www.terraform.io/downloads.html) (versão 1.0+)
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) configurada com credenciais válidas
-- Acesso a uma conta AWS com permissões adequadas
+- Acesso a uma conta AWS com permissões adequadas (AdministratorAccess)
 - Git para controle de versão
 
 ## 🛠️ Instalação
 ### 1. Clone o repositório
 
 ```bash
-git clone https://github.com/seu-usuario/pos-tech-g57-infra.git
-cd pos-tech-g57-infra/infra
+git clone https://github.com/rachelkozlowsky/pos-tech-g57-infra.git 
+cd pos-tech-g57-infra
 ```
 ### 2. Configure as credenciais da AWS
 
@@ -78,7 +78,7 @@ Será solicitado:
 
 ### 3. Personalize as variáveis
 
-Edite o arquivo `terraform.tfvars` com as configurações desejadas:
+Edite o arquivo `terraform.tfvars` com as configurações desejadas, lembre-se de mudar o nome do **bucket_name**:
 
 ```hcl
 projectName = "postech-g57"                  # Nome do projeto
@@ -102,31 +102,6 @@ bucket_name = "tfstate-backend-postech-g57"  # Nome do bucket S3 para o estado d
    # }
     ```
     Isso é necessário para a primeira execução, pois o bucket S3 ainda não existe.
-
-
-2. **Inicialize o Terraform localmente:**
-   ```bash
-   terraform init
-   ```
-3. **Crie o bucket S3:**
-   ```bash
-    terraform apply -target=aws_s3_bucket.{bucket_name}
-    ```
-4. **Atualize o arquivo `backend.tf`** para incluir o bucket S3 criado:
-   ```hcl
-   terraform {
-     backend "s3" {
-       bucket = "seu-bucket-aqui"
-       key    = "backend/tfstate"
-       region = "us-east-1"
-     }
-   }
-   ```
-5. **Migre o estado do Terraform para o S3:**
-   ```bash
-   terraform init -migrate-state
-   ```
-
 
 ## 🚀 Executando a Infraestrutura
 
@@ -154,6 +129,22 @@ terraform apply
 
 Confirme a execução digitando `yes` quando solicitado.
 
+
+4. **Atualize o arquivo `backend.tf`** para incluir o bucket S3 criado (Opcional):
+   ```hcl
+   terraform {
+     backend "s3" {
+       bucket = "seu-bucket-aqui"
+       key    = "backend/tfstate"
+       region = "us-east-1"
+     }
+   }
+   ```
+5. **Migre o estado do Terraform para o S3: (Opcional)**
+   ```bash
+   terraform init -migrate-state
+   ```
+
 ## 🧹 Limpeza dos Recursos
 
 Para remover todos os recursos criados:
@@ -163,7 +154,7 @@ terraform destroy
 ```
 
 ## 🔄 Fluxo de Trabalho com GitHub Actions
-
+//todo
 O projeto inclui um workflow do GitHub Actions que pode ser configurado para execução automática. O arquivo está localizado em `.github/workflows/terraform.yml`.
 
 ### Variáveis de Ambiente Necessárias
