@@ -38,3 +38,4 @@ variable "jwt_token_pix_application_payment" {
   description = "Token JWT para autenticação com o serviço de pagamento PIX"
   type        = string
   sensitive   = true
+}
