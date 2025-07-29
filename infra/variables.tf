@@ -39,4 +39,3 @@ variable "domain_name" {
   type        = string
   default     = "pos-tech-g57-food-app.com.br"
 }
-
