@@ -67,9 +67,9 @@ jobs:
           terraform plan -no-color -input=false
           echo "Terraform plan concluído."
 
-      # - name: Terraform Apply
-      #   if: steps.changes.outputs.has_changes == 'true'
-      #   run: terraform apply -auto-approve -input=false
+      - name: Terraform Apply
+        if: steps.changes.outputs.has_changes == 'true'
+        run: terraform apply -auto-approve -input=false
 
   notify-deployment:
     name: "Notify Deployment Status"
