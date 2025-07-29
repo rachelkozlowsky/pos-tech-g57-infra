@@ -13,3 +13,51 @@ output "subnet_cidr" {
 output "subnet_id" {
   value = aws_subnet.subnet_public[*].id
 }
+
+# ======================================
+# Route53 & Domain Outputs
+# ======================================
+
+output "domain_name" {
+  description = "Domain name configured"
+  value       = var.domain_name
+}
+
+output "hosted_zone_id" {
+  description = "Route53 Hosted Zone ID"
+  value       = aws_route53_zone.main.zone_id
+}
+
+output "hosted_zone_name_servers" {
+  description = "Name servers for the hosted zone"
+  value       = aws_route53_zone.main.name_servers
+}
+
+output "ssl_certificate_arn" {
+  description = "ARN of the SSL certificate"
+  value       = aws_acm_certificate.main.arn
+}
+
+# ======================================
+# Load Balancer Outputs
+# ======================================
+
+output "alb_dns_name" {
+  description = "DNS name of the load balancer"
+  value       = aws_lb.main.dns_name
+}
+
+output "alb_zone_id" {
+  description = "Zone ID of the load balancer"
+  value       = aws_lb.main.zone_id
+}
+
+output "alb_arn" {
+  description = "ARN of the load balancer"
+  value       = aws_lb.main.arn
+}
+
+output "target_group_arn" {
+  description = "ARN of the target group"
+  value       = aws_lb_target_group.app.arn
+}
