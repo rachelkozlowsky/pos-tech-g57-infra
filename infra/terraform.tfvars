@@ -10,4 +10,4 @@ tags = {
   Year = "2025"
 } # Tags para os recursos criados
 
-jwt_token_pix_application_payment = "SEU_TOKEN_AQUI" # Token JWT para autenticação com o serviço de pagamento PIX
+domain_name = "pos-tech-g57-food-app.com.br" # Nome de domínio para a aplicação

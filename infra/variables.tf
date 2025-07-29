@@ -34,8 +34,9 @@ variable "bucket_name" {
   default = "tfstate-backend-postech-g57"
 }
 
-variable "jwt_token_pix_application_payment" {
-  description = "Token JWT para autenticação com o serviço de pagamento PIX"
+variable "domain_name" {
+  description = "Domain name for the application"
   type        = string
-  sensitive   = true
+  default     = "pos-tech-g57-food-app.com.br"
 }
+
