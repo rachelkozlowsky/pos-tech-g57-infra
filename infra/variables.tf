@@ -40,3 +40,4 @@ variable "domain_name" {
   default     = "pos-tech-g57-food-app.com.br"
 }
 
+
