@@ -5,7 +5,7 @@ on:
     branches:
       - 'main'
     paths:
-      - 'infra/**'  # Só executa quando houver mudanças na pasta infra
+      - '**/**'
 
 jobs:
   terraform-apply:
