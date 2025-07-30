@@ -82,19 +82,20 @@ resource "aws_lb_target_group" "app" {
   })
 }
 
-# Listener HTTP (redireciona para HTTPS)
+# Listener HTTP (serve diretamente - HTTPS desativado)
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
   port              = "80"
   protocol          = "HTTP"
 
   default_action {
-    type = "redirect"
-
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
+    type             = "forward"
+    
+    forward {
+      target_group {
+        arn    = aws_lb_target_group.app.arn
+        weight = 100
+      }
     }
   }
 
@@ -103,55 +104,55 @@ resource "aws_lb_listener" "http" {
   })
 }
 
-# Listener HTTPS - Certificado validado e ativo
-resource "aws_lb_listener" "https" {
-  load_balancer_arn = aws_lb.main.arn
-  port              = "443"
-  protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
-  certificate_arn   = aws_acm_certificate.main.arn
+# Listener HTTPS - Comentado temporariamente
+# resource "aws_lb_listener" "https" {
+#   load_balancer_arn = aws_lb.main.arn
+#   port              = "443"
+#   protocol          = "HTTPS"
+#   ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
+#   certificate_arn   = aws_acm_certificate.main.arn
+#
+#   default_action {
+#     type             = "forward"
+#     
+#     forward {
+#       target_group {
+#         arn    = aws_lb_target_group.app.arn
+#         weight = 100
+#       }
+#     }
+#   }
+#
+#   tags = merge(var.tags, {
+#     Name = "${var.projectName}-https-listener"
+#   })
+#
+#   depends_on = [aws_acm_certificate_validation.main]
+# }
 
-  default_action {
-    type             = "forward"
-    
-    forward {
-      target_group {
-        arn    = aws_lb_target_group.app.arn
-        weight = 100
-      }
-    }
-  }
-
-  tags = merge(var.tags, {
-    Name = "${var.projectName}-https-listener"
-  })
-
-  depends_on = [aws_acm_certificate.main]
-}
-
-# Listener Rule para API - Ativo com HTTPS
-resource "aws_lb_listener_rule" "api" {
-  listener_arn = aws_lb_listener.https.arn
-  priority     = 100
-
-  action {
-    type             = "forward"
-    
-    forward {
-      target_group {
-        arn    = aws_lb_target_group.app.arn
-        weight = 100
-      }
-    }
-  }
-
-  condition {
-    host_header {
-      values = ["api.${var.domain_name}"]
-    }
-  }
-
-  tags = merge(var.tags, {
-    Name = "${var.projectName}-api-rule"
-  })
-}
+# Listener Rule para API - Comentado até o HTTPS estar ativo
+# resource "aws_lb_listener_rule" "api" {
+#   listener_arn = aws_lb_listener.https.arn
+#   priority     = 100
+#
+#   action {
+#     type             = "forward"
+#     
+#     forward {
+#       target_group {
+#         arn    = aws_lb_target_group.app.arn
+#         weight = 100
+#       }
+#     }
+#   }
+#
+#   condition {
+#     host_header {
+#       values = ["api.${var.domain_name}"]
+#     }
+#   }
+#
+#   tags = merge(var.tags, {
+#     Name = "${var.projectName}-api-rule"
+#   })
+# }
