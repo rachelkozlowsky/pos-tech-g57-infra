@@ -40,7 +40,7 @@ jobs:
             echo "has_changes=true" >> $GITHUB_OUTPUT
           else
             echo "Nenhuma mudança na pasta infra/"
-            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "has_changes=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Configure AWS credentials
@@ -67,9 +67,9 @@ jobs:
           terraform plan -no-color -input=false
           echo "Terraform plan concluído."
 
-      - name: Terraform Apply
-        if: steps.changes.outputs.has_changes == 'true'
-        run: terraform apply -auto-approve -input=false
+#      - name: Terraform Apply
+#        if: steps.changes.outputs.has_changes == 'true'
+#        run: terraform apply -auto-approve -input=false
 
   notify-deployment:
     name: "Notify Deployment Status"
