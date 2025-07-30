@@ -126,7 +126,7 @@ resource "aws_lb_listener" "https" {
     Name = "${var.projectName}-https-listener"
   })
 
-  depends_on = [aws_acm_certificate.main]
+  depends_on = [aws_acm_certificate_validation.main]
 }
 
 # Listener Rule para API - Ativo com HTTPS
