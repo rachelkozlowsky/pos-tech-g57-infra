@@ -40,7 +40,7 @@ jobs:
             echo "has_changes=true" >> $GITHUB_OUTPUT
           else
             echo "Nenhuma mudança na pasta infra/"
-            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "has_changes=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Configure AWS credentials
