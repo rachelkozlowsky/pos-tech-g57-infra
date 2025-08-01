@@ -8,11 +8,11 @@ Recursos criados incluem:
 - Configuração de nós do EKS
 - Sub-redes, VPC e Internet Gateway
 - Tabelas de roteamento
+- Application Load Balancer (ALB)
 - Buckets S3 para armazenamento de estado do Terraform
 - IAM Roles e Policies
 - Security Groups
 - DynamoDB
-- Secrets Manager 
 
 ## 📂 Estrutura do Projeto
 
@@ -27,6 +27,7 @@ Recursos criados incluem:
 │ └── CODEOWNERS                  # Definição de responsáveis pelo código
 ├── infra/
 │ ├── access-entry.tf    # Configuração de acesso ao cluster EKS 
+│ ├── alb.tf             # Configuração do Application Load Balancer (ALB) 
 │ ├── backend.tf         # Configuração do backend S3 para armazenamento do estado 
 │ ├── data.tf            # Fontes de dados para consulta de recursos existentes 
 │ ├── dynamodb.tf        # Configuração do DynamoDB
@@ -88,22 +89,6 @@ bucket_name = "tfstate-backend-postech-g57"  # Nome do bucket S3 para o estado d
 ```
 
 
-## 🚀 Configuração Inicial (Primeira Execução)
-
-### 1. Configuração do Backend Local
-
-1. **Primeiro, comente o bloco do backend S3** em backend.tf
-   ```hcl
-   # terraform {
-   #   backend "s3" {
-   #     bucket = "seu-bucket-aqui"
-   #     key    = "backend/tfstate"
-   #     region = "us-east-1"
-   #   }
-   # }
-    ```
-    Isso é necessário para a primeira execução, pois o bucket S3 ainda não existe.
-
 ## 🚀 Executando a Infraestrutura
 
 ### 1. Inicialize o Terraform
@@ -120,14 +105,6 @@ terraform plan
 
 ### 3. Aplique a infraestrutura
 
-[//]: # ()
-[//]: # (```bash)
-
-[//]: # (terraform apply -var="jwt_token_pix_application_payment=SEU_TOKEN_AQUI")
-
-[//]: # (```)
-
-[//]: # (ou caso tenha configurado o token no arquivo `terraform.tfvars`, você pode simplesmente executar:)
 ```bash
 terraform apply
 ```
@@ -135,7 +112,36 @@ terraform apply
 Confirme a execução digitando `yes` quando solicitado.
 
 
-### 4. **Atualize o arquivo `backend.tf`** para incluir o bucket S3 criado (Opcional):
+### Configuração do Backend S3
+
+1. **O bloco do backend está comentado** em backend.tf
+   ```hcl
+   # terraform {
+   #   backend "s3" {
+   #     bucket = "seu-bucket-aqui"
+   #     key    = "backend/tfstate"
+   #     region = "us-east-1"
+   #   }
+   # }
+    ```
+    Isso é necessário para a primeira execução, pois o bucket S3 ainda não existe.
+
+2. **Descomente o bloco do S3.tf** para aplicar a configuração do bucket S3:
+   ```hcl
+    resource "aws_s3_bucket" "bucket-backend-postech-g57" {
+      bucket = var.bucket_name
+      tags   = var.tags
+    }
+   ```
+   E certifique-se de que o nome do bucket é único globalmente.
+   Aplique a configuração do bucket S3:
+   ```bash
+    terraform init
+    terraform plan
+    terraform apply
+    ```
+
+3. **Atualize o arquivo `backend.tf`** para incluir o bucket S3 criado (Opcional):
    ```hcl
    terraform {
      backend "s3" {
@@ -145,10 +151,13 @@ Confirme a execução digitando `yes` quando solicitado.
      }
    }
    ```
-### 5. **Migre o estado do Terraform para o S3: (Opcional)**
+   
+4. **Migre o estado do Terraform para o S3:** (Opcional)
    ```bash
    terraform init -migrate-state
    ```
+   Execute novamente os comandos `terraform plan` e `terraform apply` para garantir que tudo esteja configurado corretamente.
+
 
 ## 🧹 Limpeza dos Recursos
 
@@ -182,7 +191,7 @@ Configure os seguintes segredos no repositório do GitHub (Settings > Secrets > 
 2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
 3. Faça commit das suas alterações (`git commit -m 'Add some AmazingFeature'`)
 4. Dê push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+5. O Pull Request é aberto automaticamente para revisão
 
 ## 📄 Licença
 
