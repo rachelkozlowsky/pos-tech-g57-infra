@@ -112,7 +112,7 @@ terraform apply
 Confirme a execução digitando `yes` quando solicitado.
 
 
-### Configuração do Backend S3
+### Configuração do Backend S3 (Opcional)
 
 1. **O bloco do backend está comentado** em backend.tf
    ```hcl
@@ -141,7 +141,7 @@ Confirme a execução digitando `yes` quando solicitado.
     terraform apply
     ```
 
-3. **Atualize o arquivo `backend.tf`** para incluir o bucket S3 criado (Opcional):
+3. **Atualize o arquivo `backend.tf`** para incluir o bucket S3 criado:
    ```hcl
    terraform {
      backend "s3" {
@@ -152,7 +152,7 @@ Confirme a execução digitando `yes` quando solicitado.
    }
    ```
    
-4. **Migre o estado do Terraform para o S3:** (Opcional)
+4. **Migre o estado do Terraform para o S3:** 
    ```bash
    terraform init -migrate-state
    ```
