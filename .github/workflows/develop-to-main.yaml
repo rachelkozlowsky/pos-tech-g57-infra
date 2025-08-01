@@ -73,7 +73,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
         run: |
           PR_TITLE="Release v${{ env.NEW_VERSION_SIMPLE }}: Merge develop to main"
-          PR_BODY="## Descrição\nEste PR foi criado automaticamente para promover as alterações de develop para main.\n\n## Mudanças\n- Atualizações de infraestrutura\n- Correções de bugs\n\n## Versionamento\nNova versão: **v${{ env.NEW_VERSION_SIMPLE }}**"
+          PR_BODY="## Descrição\nEste PR foi criado automaticamente para promover as alterações de develop para main.\n\n## Mudanças\n- Atualizações de infraestrutura\n- Correções de bugs\n\n##**"
           
           if [ "${{ steps.check-pr.outputs.pr_exists }}" == "false" ]; then
             echo "Creating new PR"
@@ -94,6 +94,13 @@ jobs:
               "https://api.github.com/repos/${{ github.repository }}/pulls/${{ steps.check-pr.outputs.pr_number }}" \
               -d '{"title":"'"$PR_TITLE"'","body":"'"$PR_BODY"'"}'
           fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
       - name: Setup Terraform
         if: steps.check-pr.outputs.pr_exists == 'true'
