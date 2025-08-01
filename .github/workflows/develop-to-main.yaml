@@ -73,7 +73,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
         run: |
           PR_TITLE="Release v${{ env.NEW_VERSION_SIMPLE }}: Merge develop to main"
-          PR_BODY="## Descrição\nEste PR foi criado automaticamente para promover as alterações de develop para main.\n\n## Mudanças\n- Atualizações de infraestrutura\n- Correções de bugs\n\n## Versionamento\nNova versão: **v${{ env.NEW_VERSION_SIMPLE }}**"
+          PR_BODY="## Descrição\nEste PR foi criado automaticamente para promover as alterações de develop para main.\n\n## Mudanças\n- Atualizações de infraestrutura\n- Correções de bugs\n\n##**"
           
           if [ "${{ steps.check-pr.outputs.pr_exists }}" == "false" ]; then
             echo "Creating new PR"
