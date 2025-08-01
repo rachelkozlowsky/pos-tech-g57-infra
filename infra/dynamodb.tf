@@ -1,5 +1,5 @@
 resource "aws_dynamodb_table" "dynamodb-postech-g57" {
-  name           = "postech-g57-db"
+  name = "${var.projectName}-db"
   billing_mode   = "PROVISIONED"
   read_capacity  = 20
   write_capacity = 20
